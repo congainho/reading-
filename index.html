@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE BEST CANDY IN THE UNIVERSE - SPACE ADVENTURE GAME 🚀🍬</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka & Inter for kid-friendly typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti for winning celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            font-family: 'Fredoka', 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a0b2e 0%, #31104d 50%, #4a154b 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .candy-glow {
+            box-shadow: 0 0 25px rgba(236, 72, 153, 0.6);
+        }
+        .space-glow {
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.6);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+        /* Custom scrollbar for game panels */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ec4899;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="selection:bg-pink-500 selection:text-white flex flex-col min-h-screen">
+
+    <!-- Audio Synthesizer helper using Web Audio API -->
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+            if (type === 'success') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(554.37, now + 0.1);
+                osc.frequency.setValueAtTime(659.25, now + 0.2);
+                osc.frequency.setValueAtTime(880, now + 0.3);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            } else if (type === 'fail') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.setValueAtTime(130, now + 0.15);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } else if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+        }
+    </script>
+
+    <!-- Top Navigation / Header -->
+    <header class="w-full bg-purple-950/80 backdrop-blur-md border-b border-purple-800/50 py-3 px-4 md:px-8 flex justify-between items-center z-50 shadow-lg sticky top-0">
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="goToWelcome()">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-yellow-400 flex items-center justify-center text-2xl shadow-md animate-bounce">
+                🚀
+            </div>
+            <div>
+                <h1 class="text-lg md:text-xl font-bold tracking-wider bg-gradient-to-r from-yellow-300 via-pink-400 to-cyan-300 bg-clip-text text-transparent">
+                    SPACE CANDY ADVENTURE
+                </h1>
+                <p class="text-xs text-purple-300 font-semibold">Cambridge Movers (A1) Grammar & Story Quest</p>
+            </div>
+        </div>
+
+        <div id="game-stats" class="hidden flex items-center space-x-4 md:space-x-6">
+            <div class="bg-purple-900/80 border border-purple-600/50 px-3 py-1.5 rounded-full flex items-center space-x-2 shadow-inner">
+                <span class="text-yellow-400 text-lg">⭐</span>
+                <span class="text-sm md:text-base font-bold text-yellow-200" id="score-display">0 pts</span>
+            </div>
+            <div class="bg-purple-900/80 border border-purple-600/50 px-3 py-1.5 rounded-full flex items-center space-x-2 shadow-inner">
+                <span class="text-pink-400 text-lg">🎯</span>
+                <span class="text-sm md:text-base font-bold text-pink-200" id="progress-display">Level 1/3</span>
+            </div>
+            <button onclick="goToDashboard()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded-xl text-xs font-bold transition shadow-md">
+                🗺️ Map
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow flex items-center justify-center p-4 md:p-6 relative">
+        
+        <!-- Background decorative stars -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+            <div class="absolute top-10 left-10 text-yellow-300/30 text-2xl animate-pulse">✨</div>
+            <div class="absolute top-1/4 right-20 text-pink-400/30 text-3xl animate-bounce">🍬</div>
+            <div class="absolute bottom-20 left-1/4 text-cyan-300/30 text-2xl animate-pulse">⭐</div>
+            <div class="absolute bottom-1/3 right-1/4 text-purple-300/30 text-3xl animate-float">🚀</div>
+        </div>
+
+        <!-- 1. WELCOME SCREEN -->
+        <div id="screen-welcome" class="relative z-10 max-w-2xl w-full bg-purple-900/60 backdrop-blur-xl border-4 border-pink-500/50 rounded-3xl p-6 md:p-10 text-center candy-glow animate-float">
+            <div class="inline-block bg-gradient-to-r from-pink-500 to-purple-600 text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full text-white mb-4 shadow-md">
+                A1 Cambridge Movers Edition 🎒
+            </div>
+            <h2 class="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-300 to-cyan-300 mb-4 leading-tight">
+                THE BEST CANDY IN THE UNIVERSE 🚀🍬
+            </h2>
+            <p class="text-purple-200 text-sm md:text-base mb-8 max-w-lg mx-auto leading-relaxed">
+                Join <span class="text-yellow-300 font-bold">Mina</span>, <span class="text-pink-300 font-bold">Detective Rico</span> (with his detective hat!), and <span class="text-cyan-300 font-bold">Timpy the Alien</span> on a thrilling space mission across galaxies to find the ultimate candy!
+            </p>
+
+            <!-- Character previews -->
+            <div class="flex justify-center items-center space-x-4 mb-8">
+                <div class="bg-purple-800/60 border border-purple-600 rounded-2xl p-3 flex flex-col items-center w-28">
+                    <span class="text-3xl mb-1">👧🏻</span>
+                    <span class="font-bold text-xs text-yellow-200">Mina</span>
+                    <span class="text-[10px] text-purple-300">Smart Leader</span>
+                </div>
+                <div class="bg-purple-800/60 border border-pink-600 rounded-2xl p-3 flex flex-col items-center w-28 scale-105 candy-glow">
+                    <span class="text-3xl mb-1">🦝🕵️</span>
+                    <span class="font-bold text-xs text-pink-200">Detective Rico</span>
+                    <span class="text-[10px] text-pink-300">Candy Lover</span>
+                </div>
+                <div class="bg-purple-800/60 border border-purple-600 rounded-2xl p-3 flex flex-col items-center w-28">
+                    <span class="text-3xl mb-1">👽🛸</span>
+                    <span class="font-bold text-xs text-cyan-200">Timpy</span>
+                    <span class="text-[10px] text-purple-300">Alien Pilot</span>
+                </div>
+            </div>
+
+            <button onclick="playSound('click'); startMission();" class="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-200 bg-gradient-to-r from-pink-500 via-purple-600 to-cyan-500 rounded-2xl hover:scale-105 active:scale-95 shadow-xl hover:shadow-pink-500/50">
+                <span class="absolute inset-0 w-full h-full rounded-2xl opacity-0 group-hover:opacity-30 bg-white transition-opacity"></span>
+                🚀 START MISSION!
+            </button>
+        </div>
+
+        <!-- 2. MISSION DASHBOARD / LEVEL SELECT -->
+        <div id="screen-dashboard" class="hidden relative z-10 max-w-4xl w-full bg-purple-900/70 backdrop-blur-xl border-4 border-indigo-500/50 rounded-3xl p-6 md:p-8 space-y-6 space-y-6 space-y-6">
+            <div class="text-center">
+                <span class="text-yellow-400 text-sm font-bold uppercase tracking-wider">🌟 Mission Command Center 🌟</span>
+                <h3 class="text-2xl md:text-3xl font-extrabold text-white mt-1">Choose Your Training Module</h3>
+                <p class="text-purple-200 text-sm mt-1">Complete all 3 mini-games to conquer the universe and unlock the ultimate reward!</p>
+            </div>
+
+            <!-- Rico encouragement speech bubble -->
+            <div class="bg-purple-800/80 border-2 border-pink-400 rounded-2xl p-4 flex items-center space-x-4 shadow-lg">
+                <div class="text-4xl animate-bounce">🦝🔍</div>
+                <div class="flex-grow">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-pink-300">Detective Rico says:</h4>
+                    <p class="text-sm text-white font-medium" id="dashboard-quote">"This is a very serious detective case! Let's examine the clues!"</p>
+                </div>
+            </div>
+
+            <!-- 3 Mini Game Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Mini Game 1 -->
+                <div onclick="playSound('click'); startMiniGame(1);" class="bg-gradient-to-b from-purple-800/80 to-purple-950/90 border-2 border-pink-500/50 hover:border-pink-400 rounded-2xl p-5 flex flex-col justify-between cursor-pointer transition transform hover:-translate-y-2 hover:shadow-xl group">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-3xl">🧩</span>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-pink-500/30 text-pink-200 border border-pink-400/30" id="m1-status">Not Played</span>
+                        </div>
+                        <h4 class="text-lg font-bold text-yellow-300 group-hover:text-yellow-200">Part 1: Vocabulary Match</h4>
+                        <p class="text-xs text-purple-200 mt-2 leading-relaxed">Match key story words (truth, compass, jungle, universe, brave, wormhole...) with their correct meanings.</p>
+                    </div>
+                    <div class="mt-6 pt-3 border-t border-purple-700/50 flex justify-between items-center">
+                        <span class="text-xs font-bold text-pink-300">10 Questions</span>
+                        <span class="bg-pink-600 hover:bg-pink-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition">Play Now ➔</span>
+                    </div>
+                </div>
+
+                <!-- Mini Game 2 -->
+                <div onclick="playSound('click'); startMiniGame(2);" class="bg-gradient-to-b from-purple-800/80 to-purple-950/90 border-2 border-cyan-500/50 hover:border-cyan-400 rounded-2xl p-5 flex flex-col justify-between cursor-pointer transition transform hover:-translate-y-2 hover:shadow-xl group">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-3xl">🧠</span>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-cyan-500/30 text-cyan-200 border border-cyan-400/30" id="m2-status">Not Played</span>
+                        </div>
+                        <h4 class="text-lg font-bold text-yellow-300 group-hover:text-yellow-200">Part 2: Grammar & Story Quest</h4>
+                        <p class="text-xs text-purple-200 mt-2 leading-relaxed">Master Past Simple irregular verbs (went, saw), prepositions, Wh- questions, and storyline facts.</p>
+                    </div>
+                    <div class="mt-6 pt-3 border-t border-purple-700/50 flex justify-between items-center">
+                        <span class="text-xs font-bold text-cyan-300">10 Questions</span>
+                        <span class="bg-cyan-600 hover:bg-cyan-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition">Play Now ➔</span>
+                    </div>
+                </div>
+
+                <!-- Mini Game 3 -->
+                <div onclick="playSound('click'); startMiniGame(3);" class="bg-gradient-to-b from-purple-800/80 to-purple-950/90 border-2 border-yellow-500/50 hover:border-yellow-400 rounded-2xl p-5 flex flex-col justify-between cursor-pointer transition transform hover:-translate-y-2 hover:shadow-xl group">
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-3xl">📜</span>
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-yellow-500/30 text-yellow-200 border border-yellow-400/30" id="m3-status">Not Played</span>
+                        </div>
+                        <h4 class="text-lg font-bold text-yellow-300 group-hover:text-yellow-200">Part 3: Story Order</h4>
+                        <p class="text-xs text-purple-200 mt-2 leading-relaxed">Arrange the events in chronological order using First, Next, After that, Then, Later, and Finally.</p>
+                    </div>
+                    <div class="mt-6 pt-3 border-t border-purple-700/50 flex justify-between items-center">
+                        <span class="text-xs font-bold text-yellow-300">3 Chapters</span>
+                        <span class="bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition">Play Now ➔</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ultimate finish button -->
+            <div id="finish-mission-container" class="hidden text-center pt-2">
+                <button onclick="playSound('success'); triggerVictory();" class="bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white font-extrabold px-8 py-3.5 rounded-2xl text-lg shadow-lg hover:scale-105 transition animate-bounce">
+                    🎉 CLAIM ULTIMATE UNIVERSE CANDY REWARD! 🍬
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. MINI-GAME 1: VOCABULARY MATCH -->
+        <div id="screen-game-1" class="hidden relative z-10 max-w-2xl w-full bg-purple-900/80 backdrop-blur-xl border-4 border-pink-500/50 rounded-3xl p-6 md:p-8">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-pink-400">Mini-Game 1</span>
+                    <h3 class="text-xl md:text-2xl font-extrabold text-white">Vocabulary Match 🧩</h3>
+                </div>
+                <div class="bg-purple-800 border border-pink-500/50 px-4 py-1.5 rounded-full text-sm font-bold text-yellow-300" id="g1-counter">
+                    Question 1 / 10
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div id="g1-card" class="bg-purple-950/80 border-2 border-purple-700 rounded-2xl p-6 mb-6 text-center shadow-inner">
+                <div class="text-4xl mb-3" id="g1-emoji">📖</div>
+                <h4 class="text-2xl font-bold text-yellow-300 mb-2" id="g1-word">Word</h4>
+                <p class="text-xs text-pink-300 italic mb-4" id="g1-hint">Select the correct meaning in English or Vietnamese</p>
+                
+                <div id="g1-options" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- Option buttons populated by JS -->
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <button onclick="goToDashboard()" class="text-purple-300 hover:text-white text-sm font-semibold">⬅ Back to Map</button>
+                <div id="g1-feedback" class="text-sm font-bold"></div>
+            </div>
+        </div>
+
+        <!-- 4. MINI-GAME 2: GRAMMAR & STORY QUEST -->
+        <div id="screen-game-2" class="hidden relative z-10 max-w-2xl w-full bg-purple-900/80 backdrop-blur-xl border-4 border-cyan-500/50 rounded-3xl p-6 md:p-8">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-cyan-400">Mini-Game 2</span>
+                    <h3 class="text-xl md:text-2xl font-extrabold text-white">Grammar & Story Quest 🧠</h3>
+                </div>
+                <div class="bg-purple-800 border border-cyan-500/50 px-4 py-1.5 rounded-full text-sm font-bold text-yellow-300" id="g2-counter">
+                    Question 1 / 10
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div id="g2-card" class="bg-purple-950/80 border-2 border-purple-700 rounded-2xl p-6 mb-6 shadow-inner">
+                <div class="text-sm font-bold text-cyan-300 mb-1 uppercase tracking-wider" id="g2-topic">Movers Grammar & Facts</div>
+                <h4 class="text-lg md:text-xl font-bold text-white mb-6" id="g2-question">Question text here?</h4>
+                
+                <div id="g2-options" class="space-y-3">
+                    <!-- Option buttons populated by JS -->
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <button onclick="goToDashboard()" class="text-purple-300 hover:text-white text-sm font-semibold">⬅ Back to Map</button>
+                <div id="g2-feedback" class="text-sm font-bold"></div>
+            </div>
+        </div>
+
+        <!-- 5. MINI-GAME 3: DETECTIVE RICO'S STORY ORDER -->
+        <div id="screen-game-3" class="hidden relative z-10 max-w-3xl w-full bg-purple-900/80 backdrop-blur-xl border-4 border-yellow-500/50 rounded-3xl p-6 md:p-8">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-yellow-400">Mini-Game 3</span>
+                    <h3 class="text-xl md:text-2xl font-extrabold text-white">Detective Rico's Story Order 📜</h3>
+                </div>
+                <div class="bg-purple-800 border border-yellow-500/50 px-4 py-1.5 rounded-full text-sm font-bold text-yellow-300" id="g3-counter">
+                    Storyline 1 / 3
+                </div>
+            </div>
+
+            <div class="bg-purple-950/80 border-2 border-purple-700 rounded-2xl p-6 mb-6 shadow-inner">
+                <p class="text-xs md:text-sm text-purple-200 mb-4" id="g3-instruction">Drag or click events in the correct chronological order (<span class="text-yellow-300 font-bold">First, Next, Then, Finally</span>):</p>
+                
+                <div id="g3-items" class="space-y-3 mb-6">
+                    <!-- Shuffle items populated by JS -->
+                </div>
+
+                <div class="flex justify-end">
+                    <button onclick="checkStoryOrder()" class="bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-purple-950 font-extrabold px-6 py-2.5 rounded-xl shadow-lg transition">
+                        🕵️ Check Sequence
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center">
+                <button onclick="goToDashboard()" class="text-purple-300 hover:text-white text-sm font-semibold">⬅ Back to Map</button>
+                <div id="g3-feedback" class="text-sm font-bold"></div>
+            </div>
+        </div>
+
+        <!-- 6. VICTORY / REWARD SCREEN -->
+        <div id="screen-victory" class="hidden relative z-10 max-w-2xl w-full bg-purple-900/90 backdrop-blur-xl border-4 border-yellow-400 rounded-3xl p-6 md:p-10 text-center shadow-2xl space-y-6">
+            <div class="text-6xl animate-bounce">🏆🍬🚀</div>
+            <h2 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-pink-300 to-cyan-300">
+                MISSION ACCOMPLISHED!
+            </h2>
+            <p class="text-purple-200 text-sm md:text-base">
+                Amazing job, Detective! You successfully mastered Cambridge Movers vocabulary, grammar, and unlocked the secret spaceship mission with Mina, Rico, and Timpy!
+            </p>
+            <div class="bg-purple-950/80 border border-yellow-500/50 rounded-2xl p-4 max-w-xs mx-auto">
+                <p class="text-xs text-purple-300 uppercase tracking-widest font-bold">Final Score</p>
+                <p class="text-3xl font-extrabold text-yellow-300 mt-1" id="final-score">0 pts</p>
+            </div>
+            <div class="flex justify-center space-x-4 pt-4">
+                <button onclick="restartGame()" class="bg-pink-600 hover:bg-pink-500 text-white font-bold px-6 py-3 rounded-2xl shadow-lg transition">
+                    🔄 Play Again
+                </button>
+                <button onclick="goToDashboard()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-3 rounded-2xl shadow-lg transition">
+                    🗺️ Map Menu
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full text-center py-4 text-xs text-purple-400 border-t border-purple-900/50 bg-purple-950/50">
+        Amazing English • Cambridge YLE Movers Interactive Immersive &copy; 2026
+    </footer>
+
+    <!-- Game Logic JavaScript -->
+    <script>
+        // Game State
+        let score = 0;
+        let gameProgress = { m1: false, m2: false, m3: false };
+        let currentMiniGame = null;
+
+        // Data: Vocabulary Match Questions (Mini-Game 1)
+        const vocabQuestions = [
+            { word: "truth", emoji: "🔍", hint: "What is real or correct", options: ["sự thật", "la bàn", "mũi tên", "rừng rậm"], correct: 0 },
+            { word: "compass", emoji: "🧭", hint: "A tool that shows direction", options: ["bụi cây", "la bàn", "hương vị", "vũ trụ"], correct: 1 },
+            { word: "arrow", emoji: "➡️", hint: "A sign that points a way", options: ["mũi tên", "thuyền", "manh mối", "kho hằng"], correct: 0 },
+            { word: "flavour", emoji: "🍓", hint: "The taste of food or drink", options: ["bí mật", "hương vị", "bầu trời", "gió"], correct: 1 },
+            { word: "jungle", emoji: "🌴", hint: "A hot place with many trees", options: ["thành phố", "sa mạc", "rừng rậm", "bãi biển"], correct: 2 },
+            { word: "universe", emoji: "🌌", hint: "All of space and everything in it", options: ["vũ trụ", "hành tinh", "ngôi sao", "Mặt Trăng"], correct: 0 },
+            { word: "spaceship", emoji: "🛸", hint: "A vehicle that travels in space", options: ["tàu hỏa", "máy bay", "tàu vũ trụ", "xe buýt"], correct: 2 },
+            { word: "brave", emoji: "🦁", hint: "Not afraid to do something difficult", options: ["sợ hãi", "dũng cảm", "buồn", "mệt mỏi"], correct: 1 },
+            { word: "wormhole", emoji: "🌀", hint: "A shortcut through space", options: ["đường hầm", "lỗ sâu (đường tắt vũ trụ)", "cửa sổ", "hố đen"], correct: 1 },
+            { word: "ingredient", emoji: "🧪", hint: "One thing used to make food", options: ["nguyên liệu", "thuốc", "bình nước", "món quà"], correct: 0 }
+        ];
+        let g1Index = 0;
+
+        // Data: Grammar & Story Quest Questions (Mini-Game 2)
+        const grammarQuestions = [
+            {
+                topic: "Past Simple (Irregular Verbs)",
+                question: "What is the past simple form of the verb 'go' in the story? (e.g. They _____ to the zoo last weekend.)",
+                options: ["goed", "goes", "went", "going"],
+                correct: 2,
+                explanation: "'Go' is an irregular verb. In the past simple, it becomes 'went'!"
+            },
+            {
+                topic: "Prepositions of Place",
+                question: "Where did Mina and Rico hide when they saw the giant silver spaceship in the jungle?",
+                options: ["In the box", "Behind a bush", "Under the bed", "Next to the door"],
+                correct: 1,
+                explanation: "They ducked down behind a bush and looked ahead!"
+            },
+            {
+                topic: "Past Simple (Irregular Verbs)",
+                question: "Complete the sentence: Yesterday, I _____ a funny monkey at the park. (Past of 'see')",
+                options: ["seen", "seed", "saw", "seeing"],
+                correct: 2,
+                explanation: "The past simple of 'see' is 'saw'."
+            },
+            {
+                topic: "Comparative Adjectives",
+                question: "Inside, the ship is much _____ than Mina thought. (Comparative of big)",
+                options: ["big", "bigger", "biggest", "more big"],
+                correct: 1,
+                explanation: "For short adjectives like big, we add -er + than: 'bigger than'."
+            },
+            {
+                topic: "Wh- Questions & Story Fact",
+                question: "Whose secret basement room did Mina and Rico visit at the beginning of the story?",
+                options: ["Timpy's", "Kai's", "Rico's", "Mina's mom's"],
+                correct: 0,
+                explanation: "They went into Timpy's secret basement room!"
+            },
+            {
+                topic: "Countable & Uncountable Nouns / Quantifiers",
+                question: "Mina packs a backpack and brings some warm clothes and a _____.",
+                options: ["pizza", "Reese's candy", "hamburger", "bowl of pho"],
+                correct: 1,
+                explanation: "Mina packs a Reese's candy because it might be the best candy in the universe!"
+            },
+            {
+                topic: "Story Fact / Galaxy Name",
+                question: "On Earth, what galaxy does Timpy say he is from?",
+                options: ["Milky Way", "Andromeda Galaxy", "Pindoo Galaxy", "Zogberry Galaxy"],
+                correct: 1,
+                explanation: "Timpy says: 'On Earth, you call it the Andromeda Galaxy.'"
+            },
+            {
+                topic: "Movers Modal Verbs",
+                question: "Rico eats too much candy and feels sick. Timpy gives him some _____.",
+                options: ["pizza", "medicine", "water", "shoes"],
+                correct: 1,
+                explanation: "Timpy kneels beside him and gives him some medicine."
+            },
+            {
+                topic: "Planet Pindoo Facts",
+                question: "How many suns does planet Pindoo have?",
+                options: ["One sun", "Two suns", "Three suns", "Zero suns"],
+                correct: 2,
+                explanation: "Timpy explains that Pindoo has 3 suns!"
+            },
+            {
+                topic: "Story Fact / Glowbell Flowers",
+                question: "How many Glowbell flowers does the old man in the cave ask for to make Bloomy?",
+                options: ["5 flowers", "10 flowers", "12 flowers", "1,000 flowers"],
+                correct: 1,
+                explanation: "He asks for 10 Glowbells, but Rico finds 12!"
+            }
+        ];
+        let g2Index = 0;
+
+        // Data: Story Order (Mini-Game 3)
+        const storyChapters = [
+            {
+                title: "Chapter 1: The Secret Basement & The Arrow",
+                items: [
+                    { id: 'b', text: "Mina and Rico walk home from school and talk about the party." },
+                    { id: 'e', text: "They find Timpy's basement room empty with a broken Titanic." },
+                    { id: 'a', text: "Rico eats a purple star candy from the purple box." },
+                    { id: 'd', text: "The arrow on the shiny compass changes and points at the wall." },
+                    { id: 'f', text: "They follow the arrow down the street into the jungle path." },
+                    { id: 'c', text: "They duck behind a bush and see a giant silver spaceship." }
+                ],
+                correctOrder: ['b', 'e', 'a', 'd', 'f', 'c']
+            },
+            {
+                title: "Chapter 2: Inside the Spaceship & Meeting Timpy",
+                items: [
+                    { id: 'e', text: "Mina and Rico decide to enter the open spaceship." },
+                    { id: 'b', text: "They look inside the bigger-than-expected ship full of candy." },
+                    { id: 'd', text: "Timpy shows them his planet and the Andromeda galaxy on screen." },
+                    { id: 'a', text: "Timpy invites them to join his mission to find the best candy." },
+                    { id: 'f', text: "Mina and Rico hurry home to pack and ask Mina's mom." },
+                    { id: 'c', text: "Mina's mom shouts 'Wait... WHAT?!' as they head off to space." }
+                ],
+                correctOrder: ['e', 'b', 'd', 'a', 'f', 'c']
+            },
+            {
+                title: "Chapter 3: Planet Pindoo & The Glowbell Caves",
+                items: [
+                    { id: 'b', text: "Rico feels sick from eating too much Choco Choc Chocky Choc." },
+                    { id: 'a', text: "Timpy shows them the pink-skinned people of Pindoo on screen." },
+                    { id: 'e', text: "Mina tells Timpy they must trade or buy candy, no stealing." },
+                    { id: 'c', text: "They land near a small town and meet Kai near the caves." },
+                    { id: 'd', text: "Rico eats an orange stranger's lunch and gets in trouble." },
+                    { id: 'f', text: "The old man in the cave asks for 10 rare Glowbell flowers." }
+                ],
+                correctOrder: ['b', 'a', 'e', 'c', 'd', 'f']
+            }
+        ];
+        let g3Index = 0;
+        let userCurrentOrder = [];
+
+        // Navigation Functions
+        function hideAllScreens() {
+            ['screen-welcome', 'screen-dashboard', 'screen-game-1', 'screen-game-2', 'screen-game-3', 'screen-victory'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById('game-stats').classList.add('hidden');
+        }
+
+        function goToWelcome() {
+            hideAllScreens();
+            document.getElementById('screen-welcome').classList.remove('hidden');
+        }
+
+        function startMission() {
+            hideAllScreens();
+            document.getElementById('screen-dashboard').classList.remove('hidden');
+            document.getElementById('game-stats').classList.remove('hidden');
+            updateDashboardUI();
+        }
+
+        function goToDashboard() {
+            hideAllScreens();
+            document.getElementById('screen-dashboard').classList.remove('hidden');
+            document.getElementById('game-stats').classList.remove('hidden');
+            updateDashboardUI();
+        }
+
+        function updateDashboardUI() {
+            document.getElementById('score-display').innerText = score + ' pts';
+            
+            document.getElementById('m1-status').innerText = gameProgress.m1 ? 'Completed ⭐' : 'Not Played';
+            document.getElementById('m1-status').className = gameProgress.m1 ? 'text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/30 text-green-200 border border-green-400/30' : 'text-xs font-bold px-2.5 py-1 rounded-full bg-pink-500/30 text-pink-200 border border-pink-400/30';
+
+            document.getElementById('m2-status').innerText = gameProgress.m2 ? 'Completed ⭐' : 'Not Played';
+            document.getElementById('m2-status').className = gameProgress.m2 ? 'text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/30 text-green-200 border border-green-400/30' : 'text-xs font-bold px-2.5 py-1 rounded-full bg-cyan-500/30 text-cyan-200 border border-cyan-400/30';
+
+            document.getElementById('m3-status').innerText = gameProgress.m3 ? 'Completed ⭐' : 'Not Played';
+            document.getElementById('m3-status').className = gameProgress.m3 ? 'text-xs font-bold px-2.5 py-1 rounded-full bg-green-500/30 text-green-200 border border-green-400/30' : 'text-xs font-bold px-2.5 py-1 rounded-full bg-yellow-500/30 text-yellow-200 border border-yellow-400/30';
+
+            if (gameProgress.m1 && gameProgress.m2 && gameProgress.m3) {
+                document.getElementById('finish-mission-container').classList.remove('hidden');
+            }
+        }
+
+        function startMiniGame(num) {
+            currentMiniGame = num;
+            hideAllScreens();
+            document.getElementById('game-stats').classList.remove('hidden');
+
+            if (num === 1) {
+                g1Index = 0;
+                document.getElementById('screen-game-1').classList.remove('hidden');
+                loadVocabQuestion();
+            } else if (num === 2) {
+                g2Index = 0;
+                document.getElementById('screen-game-2').classList.remove('hidden');
+                loadGrammarQuestion();
+            } else if (num === 3) {
+                g3Index = 0;
+                document.getElementById('screen-game-3').classList.remove('hidden');
+                loadStoryOrder();
+            }
+            updateDashboardUI();
+        }
+
+        // Mini-Game 1 Logic
+        function loadVocabQuestion() {
+            if (g1Index >= vocabQuestions.length) {
+                gameProgress.m1 = true;
+                score += 50;
+                playSound('success');
+                confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+                alert('Fantastic! You completed Vocabulary Match and earned 50 bonus points!');
+                goToDashboard();
+                return;
+            }
+
+            const q = vocabQuestions[g1Index];
+            document.getElementById('g1-counter').innerText = `Question ${g1Index + 1} / ${vocabQuestions.length}`;
+            document.getElementById('g1-emoji').innerText = q.emoji;
+            document.getElementById('g1-word').innerText = q.word;
+            document.getElementById('g1-hint').innerText = `Meaning hint: "${q.hint}"`;
+            document.getElementById('g1-feedback').innerText = '';
+
+            const optionsContainer = document.getElementById('g1-options');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'bg-purple-900/90 hover:bg-purple-800 border border-purple-600 text-white font-medium p-3 rounded-xl transition text-left flex items-center justify-between group';
+                btn.innerHTML = `<span>${opt}</span> <span class="text-xs text-purple-400 group-hover:text-yellow-300">Select ➔</span>`;
+                btn.onclick = () => checkVocabAnswer(idx, q.correct);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkVocabAnswer(selected, correct) {
+            const feedback = document.getElementById('g1-feedback');
+            if (selected === correct) {
+                playSound('success');
+                score += 10;
+                feedback.innerHTML = '<span class="text-green-400">✅ Correct! Great job!</span>';
+                updateDashboardUI();
+                setTimeout(() => {
+                    g1Index++;
+                    loadVocabQuestion();
+                }, 900);
+            } else {
+                playSound('fail');
+                feedback.innerHTML = '<span class="text-pink-400">❌ Oops! Try again!</span>';
+                document.getElementById('g1-card').classList.add('animate-shake');
+                setTimeout(() => document.getElementById('g1-card').classList.remove('animate-shake'), 400);
+            }
+        }
+
+        // Mini-Game 2 Logic
+        function loadGrammarQuestion() {
+            if (g2Index >= grammarQuestions.length) {
+                gameProgress.m2 = true;
+                score += 50;
+                playSound('success');
+                confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+                alert('Wonderful! You mastered Grammar & Story Quest and earned 50 bonus points!');
+                goToDashboard();
+                return;
+            }
+
+            const q = grammarQuestions[g2Index];
+            document.getElementById('g2-counter').innerText = `Question ${g2Index + 1} / ${grammarQuestions.length}`;
+            document.getElementById('g2-topic').innerText = q.topic;
+            document.getElementById('g2-question').innerText = q.question;
+            document.getElementById('g2-feedback').innerText = '';
+
+            const optionsContainer = document.getElementById('g2-options');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full bg-purple-950/80 hover:bg-purple-900 border border-purple-700 text-white font-medium p-3.5 rounded-xl transition text-left flex items-center justify-between group';
+                btn.innerHTML = `<span>${opt}</span> <span class="text-xs text-cyan-300 group-hover:text-yellow-300">Choose ➔</span>`;
+                btn.onclick = () => checkGrammarAnswer(idx, q.correct, q.explanation);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkGrammarAnswer(selected, correct, explanation) {
+            const feedback = document.getElementById('g2-feedback');
+            if (selected === correct) {
+                playSound('success');
+                score += 15;
+                feedback.innerHTML = `<span class="text-green-400">✅ Correct! ${explanation}</span>`;
+                updateDashboardUI();
+                setTimeout(() => {
+                    g2Index++;
+                    loadGrammarQuestion();
+                }, 1600);
+            } else {
+                playSound('fail');
+                feedback.innerHTML = '<span class="text-pink-400">❌ Not quite right. Try another option!</span>';
+                document.getElementById('g2-card').classList.add('animate-shake');
+                setTimeout(() => document.getElementById('g2-card').classList.remove('animate-shake'), 400);
+            }
+        }
+
+        // Mini-Game 3 Logic
+        function loadStoryOrder() {
+            if (g3Index >= storyChapters.length) {
+                gameProgress.m3 = true;
+                score += 60;
+                playSound('success');
+                confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+                alert("Brilliant! Detective Rico's Story Order challenge is fully complete!");
+                goToDashboard();
+                return;
+            }
+
+            const chapter = storyChapters[g3Index];
+            document.getElementById('g3-counter').innerText = `Storyline ${g3Index + 1} / ${storyChapters.length}`;
+            document.getElementById('g3-instruction').innerHTML = `<strong class="text-yellow-300">${chapter.title}</strong><br>Click the events in the correct chronological order:`;
+            document.getElementById('g3-feedback').innerText = '';
+
+            // Shuffle items for user to order
+            userCurrentOrder = [...chapter.items].sort(() => Math.random() - 0.5);
+            renderStoryItems();
+        }
+
+        function renderStoryItems() {
+            const container = document.getElementById('g3-items');
+            container.innerHTML = '';
+
+            userCurrentOrder.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'bg-purple-900/90 border border-purple-600 rounded-xl p-3 flex items-center justify-between text-sm text-white';
+                div.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="w-6 h-6 rounded-full bg-yellow-500/30 text-yellow-300 font-bold flex items-center justify-center text-xs">${idx + 1}</span>
+                        <span>${item.text}</span>
+                    </div>
+                    <div class="flex space-x-1">
+                        <button onclick="moveStoryItem(${idx}, -1)" class="bg-purple-800 hover:bg-purple-700 px-2 py-1 rounded text-xs">⬆️</button>
+                        <button onclick="moveStoryItem(${idx}, 1)" class="bg-purple-800 hover:bg-purple-700 px-2 py-1 rounded text-xs">⬇️</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function moveStoryItem(index, direction) {
+            playSound('click');
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= userCurrentOrder.length) return;
+            const temp = userCurrentOrder[index];
+            userCurrentOrder[index] = userCurrentOrder[newIndex];
+            userCurrentOrder[newIndex] = temp;
+            renderStoryItems();
+        }
+
+        function checkStoryOrder() {
+            const chapter = storyChapters[g3Index];
+            const userOrderIds = userCurrentOrder.map(item => item.id);
+            const isCorrect = userOrderIds.every((id, idx) => id === chapter.correctOrder[idx]);
+
+            const feedback = document.getElementById('g3-feedback');
+            if (isCorrect) {
+                playSound('success');
+                score += 25;
+                feedback.innerHTML = '<span class="text-green-400">🎉 Perfect sequence! Detective Rico is proud!</span>';
+                updateDashboardUI();
+                setTimeout(() => {
+                    g3Index++;
+                    loadStoryOrder();
+                }, 1400);
+            } else {
+                playSound('fail');
+                feedback.innerHTML = '<span class="text-pink-400">❌ Order is incorrect. Use the arrows to re-arrange!</span>';
+            }
+        }
+
+        function triggerVictory() {
+            hideAllScreens();
+            document.getElementById('screen-victory').classList.remove('hidden');
+            document.getElementById('final-score').innerText = score + ' pts';
+            confetti({ particleCount: 200, spread: 120, origin: { y: 0.4 } });
+        }
+
+        function restartGame() {
+            score = 0;
+            gameProgress = { m1: false, m2: false, m3: false };
+            document.getElementById('finish-mission-container').classList.add('hidden');
+            startMission();
+        }
+    </script>
+</body>
+</html>
